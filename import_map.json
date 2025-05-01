@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "tailwindcss": "npm:tailwindcss@3.4.1",
+    "tailwindcss/": "npm:/tailwindcss@3.4.1/",
+    "tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
+    "openai": "jsr:@openai/openai",
+    "twilio": "npm:twilio",
+    "sqlite": "jsr:@db/sqlite",
+    "$std/": "https://deno.land/std@0.216.0/",
+    "$types/": "./types/",
+    "$libs/": "./libs/"
+  }
+}

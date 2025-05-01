@@ -1,0 +1,11 @@
+services:
+  deno:
+    container_name: voip-tbs-portable
+    image: deno:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.list
