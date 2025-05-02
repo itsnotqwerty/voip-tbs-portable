@@ -31,8 +31,6 @@ const twilioClient = twilio(accountSid, authToken);
 
 const openaiApiKey = Deno.env.get("OPENAI_API_KEY") || "";
 
-console.log(openaiApiKey);
-
 const agent: IAgent = {
   agent_name: "Dummy",
   business_name: "Dummy Inc.",
@@ -107,7 +105,7 @@ Deno.serve(async (req) => {
     to: callerNumber,
   });
 
-  console.log(`Responding to ${callerNumber}: "${message.message}"`);
+  console.log(`Responding to ${callerNumber} using ${twilioNumber}: "${message.message}"`);
 
   db.messages.insertMessage(message);
 
