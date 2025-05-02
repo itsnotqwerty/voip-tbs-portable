@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "https://jsr.io/@openai/openai/4.82.0/resources/index.ts";
 import { IAgent } from "$types/data.ts";
 import { CustomDB } from "$libs/db.ts";
+import { open } from "fs";
 
 type Prompt = {
   input: string;
@@ -30,6 +31,8 @@ const twilioNumber = Deno.env.get("TWILIO_NUMBER") || "";
 const twilioClient = twilio(accountSid, authToken);
 
 const openaiApiKey = Deno.env.get("OPENAI_API_KEY") || "";
+
+console.log(openaiApiKey);
 
 const agent: IAgent = {
   agent_name: "Dummy",
