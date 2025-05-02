@@ -29,6 +29,8 @@ const authToken = Deno.env.get("TWILIO_AUTH_TOKEN") || "";
 const twilioNumber = Deno.env.get("TWILIO_NUMBER") || "";
 const twilioClient = twilio(accountSid, authToken);
 
+const openaiApiKey = Deno.env.get("OPENAI_API_KEY") || "";
+
 const agent: IAgent = {
   agent_name: "Dummy",
   business_name: "Dummy Inc.",
@@ -43,13 +45,11 @@ Deno.serve(async (req) => {
   const callerNumber = url.searchParams.get("From") as string;
   const body = url.searchParams.get("Body") as string;
 
+  const openaiClient = new OpenAI({ apiKey: openaiApiKey });
+
   if (!callerNumber) {
     return new Response("No caller number provided.", { status: 400 });
   }
-  
-  const openai = new OpenAI({
-    apiKey: Deno.env.get("OPENAI_API_KEY") || "",
-  });
 
   const inputs: ChatCompletionMessageParam[] = [
     { role: "system", content: "You are a helpful assistant." },
@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     inputs.push({ role: "system", content: "You are taking an inquiry. Introduce the business and ask the user what they need."});
   }
 
-  const completion = await openai.chat.completions.create({
+  const completion = await openaiClient.chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: inputs,
     max_tokens: 1000,
