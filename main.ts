@@ -80,9 +80,11 @@ Deno.serve(async (req) => {
   });
 
   if (body) {
+    console.log(`Incoming message from ${callerNumber}: "${body}"`);
     inputs.push({ role: "user", content: body });
     db.messages.insertMessage({message: body, number_to: twilioNumber, number_from: callerNumber});
   } else {
+    console.log(`Incoming call from ${callerNumber}`);
     inputs.push({ role: "system", content: "You are taking an inquiry. Introduce the business and ask the user what they need."});
   }
 
@@ -99,13 +101,15 @@ Deno.serve(async (req) => {
     number_from: twilioNumber,
   }
 
-  db.messages.insertMessage(message);
-
   twilioClient.messages.create({
     body: message.message,
     from: twilioNumber,
     to: callerNumber,
   });
+
+  console.log(`Responding to ${callerNumber}: "${message.message}"`);
+
+  db.messages.insertMessage(message);
 
   return new Response("Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
 });
