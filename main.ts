@@ -40,8 +40,12 @@ const db = new CustomDB("main.sqlite");
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
-  const callerNumber = url.searchParams.get("From") || "";
+  const callerNumber = url.searchParams.get("From") as string;
   const body = url.searchParams.get("Body") as string;
+
+  if (!callerNumber) {
+    return new Response("No caller number provided.", { status: 400 });
+  }
   
   const openai = new OpenAI({
     apiKey: Deno.env.get("OPENAI_API_KEY") || "",
