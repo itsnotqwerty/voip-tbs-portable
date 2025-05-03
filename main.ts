@@ -4,6 +4,7 @@ import { ChatCompletionMessageParam } from "https://jsr.io/@openai/openai/4.82.0
 import { CustomDB } from "$libs/db.ts";
 import { agent } from "$libs/agent.ts";
 import { prompts } from "$libs/prompts.ts";
+import { format } from "https://deno.land/std@0.91.0/datetime/mod.ts";
 
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
   });
 
   if (body) {
-    console.log(`Incoming message from ${callerNumber} [${new Date().getTime()}]: "${body}"`);
+    console.log(`Incoming message from ${callerNumber} [${format(new Date(), "yyyy-MM-dd - HH:mm:ss")}]: "${body}"`);
     inputs.push({ role: "user", content: body });
     db.messages.insertMessage({message: body, number_to: twilioNumber, number_from: callerNumber});
 
@@ -114,7 +115,7 @@ Deno.serve(async (req) => {
     to: callerNumber,
   });
 
-  console.log(`Responding to ${callerNumber} using ${twilioNumber} [${new Date().getTime()}]: "${message.message}"`);
+  console.log(`Responding to ${callerNumber} using ${twilioNumber} [${format(new Date(), "yyyy-MM-dd - HH:mm:ss")}]: "${message.message}"`);
 
   db.messages.insertMessage(message);
 
