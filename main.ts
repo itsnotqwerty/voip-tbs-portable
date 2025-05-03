@@ -1,42 +1,15 @@
 import twilio from "twilio";
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "https://jsr.io/@openai/openai/4.82.0/resources/index.ts";
-import { IAgent } from "$types/data.ts";
 import { CustomDB } from "$libs/db.ts";
-
-type Prompt = {
-  input: string;
-  output: string;
-}
-
-const prompts: Prompt[] = [
-  {
-    input: "Hello, how are you?",
-    output: "I'm doing well, thank you! How can I assist you today?",
-  },
-  {
-    input: "What is your name?",
-    output: "My name is Dummy.",
-  },
-  {
-    input: "What is your business name?",
-    output: "I represent Dummy Inc.",
-  },
-];
+import { agent } from "$libs/agent.ts";
+import { prompts } from "$libs/prompts.ts";
 
 const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
 const authToken = Deno.env.get("TWILIO_AUTH_TOKEN") || "";
 const twilioNumber = Deno.env.get("TWILIO_NUMBER") || "";
-const twilioClient = twilio(accountSid, authToken);
 
 const openaiApiKey = Deno.env.get("OPENAI_API_KEY") || "";
-
-const agent: IAgent = {
-  agent_name: "Dummy",
-  business_name: "Dummy Inc.",
-  personality: "Friendly",
-  directives: "Be helpful and informative."
-}
 
 const db = new CustomDB("main.sqlite");
 
@@ -45,6 +18,7 @@ Deno.serve(async (req) => {
   const callerNumber = url.searchParams.get("From") as string;
   const body = url.searchParams.get("Body") as string;
 
+  const twilioClient = twilio(accountSid, authToken);
   const openaiClient = new OpenAI({ apiKey: openaiApiKey });
 
   if (!callerNumber) {
