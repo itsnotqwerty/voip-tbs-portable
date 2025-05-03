@@ -59,10 +59,10 @@ Deno.serve(async (req) => {
     const table = XLSX.utils.json_to_sheet([
       { number_to: twilioNumber, number_from: callerNumber, message: body, unix_timestamp: Date.now() / 1000 },
     ])
-    const book = XLSX.readFile("messages.xlsx", { cellDates: true });
+    const book = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
     const sheet = book.Sheets[book.SheetNames[0]];
     XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
-    XLSX.writeFile(book, "messages.xlsx", { cellDates: true });
+    XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
   } else {
     console.log(`Incoming call from ${callerNumber}`);
     inputs.push({ role: "system", content: "You are taking an inquiry. Introduce the business and ask the user what they need."});
@@ -94,10 +94,26 @@ Deno.serve(async (req) => {
   const table = XLSX.utils.json_to_sheet([
     { number_to: callerNumber, number_from: twilioNumber, message: body, unix_timestamp: Date.now() / 1000 },
   ])
-  const book = XLSX.readFile("messages.xlsx", { cellDates: true });
+  const book = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
   const sheet = book.Sheets[book.SheetNames[0]];
   XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
-  XLSX.writeFile(book, "messages.xlsx", { cellDates: true });
+  XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
+
+  // If the last message is older than 2.5 minutes, send the excel log to the user
+  setTimeout(() => {
+    const sortedMessages = messages.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
+    const mostRecentMessage = sortedMessages[sortedMessages.length - 1];
+    if (mostRecentMessage.unix_timestamp < Date.now() / 1000 - 30) {
+      const file = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
+      const buffer = XLSX.write(file, { type: 'buffer', bookType: 'xlsx' });
+      twilioClient.messages.create({
+        body: `Here is a log of your messages with ${callerNumber}.`,
+        from: twilioNumber,
+        to: "+13142159064",
+        mediaUrl: [`data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buffer.toString('base64')}`],
+      });
+    }
+  }, 30000);
 
   return new Response(body ? "" : "Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
 });
