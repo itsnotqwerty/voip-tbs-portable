@@ -18,24 +18,13 @@ const logger = new Logger(db);
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
-  if (url.pathname.match(/^\/messages\/\+[0-9]+\.xlsx/)) {
+  if (url.pathname.match(/^\/messages\/\+[0-9]+\.zip/)) {
     const filePathWithRoot = Deno.cwd() + "/" + url.pathname;
     const file = await Deno.open(filePathWithRoot, { read: true });
     return new Response(file.readable, {
       headers: {
-        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${filePathWithRoot.split("/").pop()}"`
-      },
-    });
-  }
-
-  if (url.pathname.match(/^\/messages\/\+[0-9]+\.txt/)) {
-    const filePathWithRoot = Deno.cwd() + "/" + url.pathname;
-    const file = await Deno.open(filePathWithRoot, { read: true });
-    return new Response(file.readable, {
-      headers: {
-        "Content-Type": "text/plain",
-        "Content-Disposition": `attachment; filename="${filePathWithRoot.split("/").pop()}"`
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${url.pathname.split("/").pop()}"`,
       },
     });
   }
@@ -126,7 +115,7 @@ Deno.serve(async (req) => {
             // Send the excel logs of the conversation to the business owner
             const filePath = "/messages/" + callerNumber + ".zip";
             twilioClient.messages.create({
-              body: `Your conversation with ${callerNumber} can be found at ${filePath}`,
+              body: `Your conversation with ${callerNumber} can be found at ${url.origin + filePath}`,
               from: twilioNumber,
               to: agent.fallback_number || "",
             }).then(() => {
