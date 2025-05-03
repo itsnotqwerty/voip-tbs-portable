@@ -147,12 +147,13 @@ Deno.serve(async (req) => {
       const timeDifference = currentTime - lastMessage.unix_timestamp;
       if (timeDifference > 30) { // .5 minutes in seconds
         // Send the excel logs of the conversation to the business owner
-        const filePathWithRoot = Deno.cwd() + "/messages/" + callerNumber + ".xlsx";
+        const filePath = "/messages/" + callerNumber + ".xlsx";
+        console.log(`${'http://' + url.origin + '/' + filePath}`);
         twilioClient.messages.create({
           body: `The conversation with ${callerNumber} has ended. Please check the logs.`,
           from: twilioNumber,
           to: agent.fallback_number || "",
-          mediaUrl: [url.origin + '/' + filePathWithRoot],
+          mediaUrl: ['http://' + url.origin + '/' + filePath],
         }).then(() => {
           console.log(`Sent conversation logs to ${agent.fallback_number}`);
         }).catch((error) => {
