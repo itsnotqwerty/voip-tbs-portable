@@ -117,8 +117,8 @@ class MessageHandler {
     messages.forEach((message) => {
       this.db.prepare(
         `
-          INSERT INTO message_archives (user_id, message, number_to, number_from, unix_timestamp)
-          VALUES (?, ?, ?, ?, unixepoch());
+          INSERT INTO message_archives (message, number_to, number_from, unix_timestamp)
+          VALUES (?, ?, ?, unixepoch());
         `,
       ).run(
         message.message,

@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         if (lastMessage) {
           const currentTime = Date.now() / 1000;
           const timeDifference = currentTime - lastMessage.unix_timestamp;
-          if (timeDifference > 150) { // 2.5 minutes in seconds
+          if (timeDifference > 30) { // 2.5 minutes in seconds
             // Archive the messages
             db.messages.archiveMessages(twilioNumber, callerNumber);
             logger.archiveMessages(callerNumber);
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
           }
         }
         resolve(new Response("Thank you for your messages. We will get back to you shortly.", {status: 200}));
-      }, 151000); // Slightly over 2.5 minutes
+      }, 31000); // Slightly over 2.5 minutes
     })
   } else {
     return new Response("Sorry we could not take your call. Please leave a message.", {status: 200});
