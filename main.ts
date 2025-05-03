@@ -71,6 +71,11 @@ Deno.serve(async (req) => {
     ])
     const sheet = book.Sheets[book.SheetNames[0]];
     XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
+    if (!book.SheetNames.length) {
+      XLSX.utils.book_append_sheet(book, sheet, "Messages");
+    } else {
+      book.Sheets[book.SheetNames[0]] = sheet;
+    }
     XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
   } else {
     console.log(`Incoming call from ${callerNumber}`);
