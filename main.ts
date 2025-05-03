@@ -18,6 +18,18 @@ const db = new CustomDB("main.sqlite");
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
+  if (url.pathname.match(/^\/messages\/\+[0-9]+\.xlsx/)) {
+    const filePath = url.pathname.replace(/^\/messages\//, "");
+    const filePathWithRoot = Deno.cwd() + "/" + filePath;
+    const file = await Deno.open(filePathWithRoot, { read: true });
+    return new Response(file.readable, {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${filePath}"`,
+      },
+    });
+  }
+
   const callerNumber = url.searchParams.get("From") as string;
   const body = url.searchParams.get("Body") as string;
 
@@ -132,13 +144,11 @@ Deno.serve(async (req) => {
     const sortedMessages = messages.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
     const mostRecentMessage = sortedMessages[sortedMessages.length - 1];
     if (mostRecentMessage.unix_timestamp < Date.now() / 1000 - 30) {
-      const file = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
-      const buffer = XLSX.write(file, { type: 'buffer', bookType: 'xlsx' });
       twilioClient.messages.create({
         body: `Here is a log of your messages with ${callerNumber}.`,
         from: twilioNumber,
         to: "+13142159064",
-        mediaUrl: [`data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${buffer.toString('base64')}`],
+        mediaUrl: [url.origin + "/messages/" + callerNumber + ".xlsx"]
       });
     }
   }, 30000);
