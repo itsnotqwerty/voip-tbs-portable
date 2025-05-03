@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
   });
 
   if (body) {
-    console.log(`Incoming message from ${callerNumber}: "${body}"`);
+    console.log(`Incoming message from ${callerNumber} [${new Date().getTime()}]: "${body}"`);
     inputs.push({ role: "user", content: body });
     db.messages.insertMessage({message: body, number_to: twilioNumber, number_from: callerNumber});
 
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     to: callerNumber,
   });
 
-  console.log(`Responding to ${callerNumber} using ${twilioNumber}: "${message.message}"`);
+  console.log(`Responding to ${callerNumber} using ${twilioNumber} [${new Date().getTime()}]: "${message.message}"`);
 
   db.messages.insertMessage(message);
 
@@ -140,9 +140,11 @@ Deno.serve(async (req) => {
 
   // If the last message is older than 2.5 minutes, send the excel log to the user
   setTimeout(() => {
+    console.log("Checking if the log needs to be sent...");
     const sortedMessages = messages.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
     const mostRecentMessage = sortedMessages[sortedMessages.length - 1];
     if (mostRecentMessage.unix_timestamp < Date.now() / 1000 - 30) {
+      console.log("Sending the log to the business owner...");
       twilioClient.messages.create({
         body: `Here is a log of your messages with ${callerNumber}.`,
         from: twilioNumber,
