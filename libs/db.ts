@@ -142,4 +142,23 @@ class MessageHandler {
       number_to,
     ) as IMessage[];
   }
+
+  public getLastMessageByNumber(
+    number_to: string,
+    number_from: string,
+  ) {
+    return this.db.prepare(
+      `
+        SELECT * FROM messages
+        WHERE (number_to = ? AND number_from = ?) OR (number_to = ? AND number_from = ?)
+        ORDER BY unix_timestamp DESC
+        LIMIT 1;
+      `,
+    ).get(
+      number_to,
+      number_from,
+      number_from,
+      number_to,
+    ) as IMessage;
+  }
 }

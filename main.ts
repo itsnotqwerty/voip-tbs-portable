@@ -139,21 +139,28 @@ Deno.serve(async (req) => {
   XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
   XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
 
-  // If the last message is older than 2.5 minutes, send the excel log to the user
+  // Check if it has been over .5 minutes since the last message
   setTimeout(() => {
-    console.log("Checking if the log needs to be sent...");
-    const sortedMessages = messages.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
-    const mostRecentMessage = sortedMessages[sortedMessages.length - 1];
-    if (mostRecentMessage.unix_timestamp < Date.now() / 1000 - 30) {
-      console.log("Sending the log to the business owner...");
-      twilioClient.messages.create({
-        body: `Here is a log of your messages with ${callerNumber}.`,
-        from: twilioNumber,
-        to: "+13142159064",
-        mediaUrl: [url.origin + "/messages/" + callerNumber + ".xlsx"]
-      });
+    const lastMessage = db.messages.getLastMessageByNumber(callerNumber, twilioNumber);
+    if (lastMessage) {
+      const currentTime = Date.now() / 1000;
+      const timeDifference = currentTime - lastMessage.unix_timestamp;
+      if (timeDifference > 30) { // .5 minutes in seconds
+        // Send the excel logs of the conversation to the business owner
+        const filePathWithRoot = Deno.cwd() + "/messages/" + callerNumber + ".xlsx";
+        twilioClient.messages.create({
+          body: `The conversation with ${callerNumber} has ended. Please check the logs.`,
+          from: twilioNumber,
+          to: agent.fallback_number || "",
+          mediaUrl: [url.origin + '/' + filePathWithRoot],
+        }).then(() => {
+          console.log(`Sent conversation logs to ${agent.fallback_number}`);
+        }).catch((error) => {
+          console.error(`Failed to send conversation logs: ${error}`);
+        })
+      }
     }
-  }, 45000);
+  }, 35000); // 35 seconds
 
   return new Response(body ? "" : "Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
 });
