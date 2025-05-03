@@ -139,27 +139,31 @@ Deno.serve(async (req) => {
   XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
   XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
 
-  // Check if it has been over 2.5 minutes since the last message
-  setTimeout(() => {
-    const lastMessage = db.messages.getLastMessageByNumber(callerNumber, twilioNumber);
-    if (lastMessage) {
-      const currentTime = Date.now() / 1000;
-      const timeDifference = currentTime - lastMessage.unix_timestamp;
-      if (timeDifference > 150) { // 2.5 minutes in seconds
-        // Send the excel logs of the conversation to the business owner
-        const filePath = "/messages/" + callerNumber + ".xlsx";
-        twilioClient.messages.create({
-          body: `Your conversation with ${callerNumber} can be found at ${url.origin + filePath}.`,
-          from: twilioNumber,
-          to: agent.fallback_number || "",
-        }).then(() => {
-          console.log(`Sent conversation logs to ${agent.fallback_number || "noone in particular"} using ${twilioNumber}`);
-        }).catch((error) => {
-          console.error(`Failed to send conversation logs: ${error}`);
-        })
+  if (body) {
+    // Check if it has been over 2.5 minutes since the last message
+    setTimeout(() => {
+      const lastMessage = db.messages.getLastMessageByNumber(callerNumber, twilioNumber);
+      if (lastMessage) {
+        const currentTime = Date.now() / 1000;
+        const timeDifference = currentTime - lastMessage.unix_timestamp;
+        if (timeDifference > 150) { // 2.5 minutes in seconds
+          // Send the excel logs of the conversation to the business owner
+          const filePath = "/messages/" + callerNumber + ".xlsx";
+          twilioClient.messages.create({
+            body: `Your conversation with ${callerNumber} can be found at ${url.origin + filePath}.`,
+            from: twilioNumber,
+            to: agent.fallback_number || "",
+          }).then(() => {
+            console.log(`Sent conversation logs to ${agent.fallback_number || "noone in particular"} using ${twilioNumber}`);
+          }).catch((error) => {
+            console.error(`Failed to send conversation logs: ${error}`);
+          })
+        }
       }
-    }
-  }, 151000); // Slightly over 2.5 minutes
-
-  return new Response(body ? "" : "Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
+      return new Response("Thank you for your messages. We will get back to you shortly.", {status: 200});
+    }, 151000); // Slightly over 2.5 minutes
+  } else {
+    return new Response("Sorry we could not take your call. Please leave a message.", {status: 200});
+  }
+  
 });
