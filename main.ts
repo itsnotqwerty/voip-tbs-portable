@@ -4,7 +4,7 @@ import { ChatCompletionMessageParam } from "https://jsr.io/@openai/openai/4.82.0
 import { CustomDB } from "$libs/db.ts";
 import { agent } from "$libs/agent.ts";
 import { prompts } from "$libs/prompts.ts";
-import * as XLSX from "xlsx";
+import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 
 const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
 const authToken = Deno.env.get("TWILIO_AUTH_TOKEN") || "";
