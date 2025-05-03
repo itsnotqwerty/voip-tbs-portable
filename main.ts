@@ -4,6 +4,8 @@ import { ChatCompletionMessageParam } from "https://jsr.io/@openai/openai/4.82.0
 import { CustomDB } from "$libs/db.ts";
 import { agent } from "$libs/agent.ts";
 import { prompts } from "$libs/prompts.ts";
+
+// @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 
 const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
@@ -56,10 +58,17 @@ Deno.serve(async (req) => {
     console.log(`Incoming message from ${callerNumber}: "${body}"`);
     inputs.push({ role: "user", content: body });
     db.messages.insertMessage({message: body, number_to: twilioNumber, number_from: callerNumber});
+
+    let book: XLSX.WorkBook;
+    try {
+      book = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
+    } catch (_e) {
+      book = XLSX.utils.book_new();
+    }
+
     const table = XLSX.utils.json_to_sheet([
       { number_to: twilioNumber, number_from: callerNumber, message: body, unix_timestamp: Date.now() / 1000 },
     ])
-    const book = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
     const sheet = book.Sheets[book.SheetNames[0]];
     XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
     XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
@@ -91,10 +100,16 @@ Deno.serve(async (req) => {
 
   db.messages.insertMessage(message);
 
+  let book: XLSX.WorkBook;
+  try {
+    book = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
+  } catch (_e) {
+    book = XLSX.utils.book_new();
+  }
+
   const table = XLSX.utils.json_to_sheet([
     { number_to: callerNumber, number_from: twilioNumber, message: body, unix_timestamp: Date.now() / 1000 },
   ])
-  const book = XLSX.readFile(`messages/${callerNumber}.xlsx`, { cellDates: true });
   const sheet = book.Sheets[book.SheetNames[0]];
   XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
   XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
