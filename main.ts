@@ -4,6 +4,7 @@ import { ChatCompletionMessageParam } from "https://jsr.io/@openai/openai/4.82.0
 import { CustomDB } from "$libs/db.ts";
 import { agent } from "$libs/agent.ts";
 import { prompts } from "$libs/prompts.ts";
+import * as XLSX from "xlsx";
 
 const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
 const authToken = Deno.env.get("TWILIO_AUTH_TOKEN") || "";
@@ -55,6 +56,13 @@ Deno.serve(async (req) => {
     console.log(`Incoming message from ${callerNumber}: "${body}"`);
     inputs.push({ role: "user", content: body });
     db.messages.insertMessage({message: body, number_to: twilioNumber, number_from: callerNumber});
+    const table = XLSX.utils.json_to_sheet([
+      { number_to: twilioNumber, number_from: callerNumber, message: body, unix_timestamp: Date.now() / 1000 },
+    ])
+    const book = XLSX.readFile("messages.xlsx", { cellDates: true });
+    const sheet = book.Sheets[book.SheetNames[0]];
+    XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
+    XLSX.writeFile(book, "messages.xlsx", { cellDates: true });
   } else {
     console.log(`Incoming call from ${callerNumber}`);
     inputs.push({ role: "system", content: "You are taking an inquiry. Introduce the business and ask the user what they need."});
@@ -82,6 +90,14 @@ Deno.serve(async (req) => {
   console.log(`Responding to ${callerNumber} using ${twilioNumber}: "${message.message}"`);
 
   db.messages.insertMessage(message);
+
+  const table = XLSX.utils.json_to_sheet([
+    { number_to: callerNumber, number_from: twilioNumber, message: body, unix_timestamp: Date.now() / 1000 },
+  ])
+  const book = XLSX.readFile("messages.xlsx", { cellDates: true });
+  const sheet = book.Sheets[book.SheetNames[0]];
+  XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
+  XLSX.writeFile(book, "messages.xlsx", { cellDates: true });
 
   return new Response(body ? "" : "Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
 });

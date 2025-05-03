@@ -11,6 +11,7 @@
     "openai": "jsr:@openai/openai",
     "twilio": "npm:twilio",
     "sqlite": "jsr:@db/sqlite",
+    "xlsx": "npm:xlsx",
     "$std/": "https://deno.land/std@0.216.0/",
     "$types/": "./types/",
     "$libs/": "./libs/"
