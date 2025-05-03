@@ -1,5 +1,13 @@
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
+import {
+  BlobReader,
+  BlobWriter,
+  TextReader,
+  TextWriter,
+  ZipReader,
+  ZipWriter,
+} from "https://deno.land/x/zipjs/index.js";
 import { format } from "https://deno.land/std@0.91.0/datetime/mod.ts";
 import { IMessage } from "$types/data.ts";
 import { CustomDB } from "./db.ts";
@@ -29,6 +37,28 @@ export class Logger {
       number_from: from,
       unix_timestamp: Math.floor(new Date(timestamp).getTime() / 1000),
     };
+  }
+
+  public archiveMessages(number: string) {
+    const files = [
+      `messages/${number}.xlsx`,
+      `messages/${number}.txt`,
+    ];
+    const zipFileName = `messages/${number}.zip`;
+    const zipWriter = new ZipWriter(new BlobWriter("application/zip"));
+    for (const file of files) {
+      const fileReader = new BlobReader(new Blob([Deno.readFileSync(file)]));
+      zipWriter.add(file, fileReader, { zipEntryName: file.split("/").pop() });
+    }
+    zipWriter.close().then(async (blob: Blob) => {
+      Deno.writeFileSync(zipFileName, new Uint8Array(await blob.arrayBuffer()));
+      for (const file of files) {
+        Deno.removeSync(file);
+      }
+      console.log(`Archived messages for ${number} into ${zipFileName}`);
+    }).catch((error: Error) => {
+      console.error(`Failed to archive messages for ${number}: ${error}`);
+    });
   }
 }
 
@@ -71,7 +101,6 @@ class TXTHandler {
   }
 
   public logToFile(message: Omit<IMessage, "id">) {
-    const twilioNumber = (Deno.env.get("TWILIO_NUMBER") == message.number_from) ? message.number_from : message.number_to;
     const callerNumber = (Deno.env.get("TWILIO_NUMBER") == message.number_from) ? message.number_to : message.number_from;
     const fileName = `messages/${callerNumber}.txt`;
 

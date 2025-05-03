@@ -29,6 +29,17 @@ Deno.serve(async (req) => {
     });
   }
 
+  if (url.pathname.match(/^\/messages\/\+[0-9]+\.txt/)) {
+    const filePathWithRoot = Deno.cwd() + "/" + url.pathname;
+    const file = await Deno.open(filePathWithRoot, { read: true });
+    return new Response(file.readable, {
+      headers: {
+        "Content-Type": "text/plain",
+        "Content-Disposition": `attachment; filename="${filePathWithRoot.split("/").pop()}"`
+      },
+    });
+  }
+
   const callerNumber = url.searchParams.get("From") as string;
   const body = url.searchParams.get("Body") as string;
 
@@ -108,16 +119,16 @@ Deno.serve(async (req) => {
           const currentTime = Date.now() / 1000;
           const timeDifference = currentTime - lastMessage.unix_timestamp;
           if (timeDifference > 150) { // 2.5 minutes in seconds
+            // Archive the messages
+            db.messages.archiveMessages(twilioNumber, callerNumber);
+            logger.archiveMessages(callerNumber);
+
             // Send the excel logs of the conversation to the business owner
-            const filePaths = [
-              "/messages/" + callerNumber + ".xlsx",
-              "/messages/" + callerNumber + ".txt",
-            ];
+            const filePath = "/messages/" + callerNumber + ".zip";
             twilioClient.messages.create({
-              body: `Your conversation with ${callerNumber} can be found here.`,
+              body: `Your conversation with ${callerNumber} can be found at ${filePath}`,
               from: twilioNumber,
               to: agent.fallback_number || "",
-              mediaUrl: [`${url.origin + filePaths[0]}`, `${url.origin + filePaths[1]}`],
             }).then(() => {
               console.log(`Sent conversation logs to ${agent.fallback_number || "noone in particular"} using ${twilioNumber}`);
             }).catch((error) => {
