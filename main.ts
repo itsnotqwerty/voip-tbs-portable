@@ -19,13 +19,12 @@ const db = new CustomDB("main.sqlite");
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   if (url.pathname.match(/^\/messages\/\+[0-9]+\.xlsx/)) {
-    const filePath = url.pathname.replace(/^\/messages\//, "");
-    const filePathWithRoot = Deno.cwd() + "/" + filePath;
+    const filePathWithRoot = Deno.cwd() + "/" + url.pathname;
     const file = await Deno.open(filePathWithRoot, { read: true });
     return new Response(file.readable, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="${filePath}"`,
+        "Content-Disposition": `attachment; filename="${filePathWithRoot.split("/").pop()}"`
       },
     });
   }
