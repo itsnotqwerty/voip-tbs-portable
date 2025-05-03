@@ -66,16 +66,18 @@ Deno.serve(async (req) => {
       book = XLSX.utils.book_new();
     }
 
-    const table = XLSX.utils.json_to_sheet([
-      { number_to: twilioNumber, number_from: callerNumber, message: body, unix_timestamp: Date.now() / 1000 },
-    ])
     const sheet = book.Sheets[book.SheetNames[0]];
-    XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
     if (!book.SheetNames.length) {
       XLSX.utils.book_append_sheet(book, sheet, "Messages");
     } else {
       book.Sheets[book.SheetNames[0]] = sheet;
     }
+
+    const table = XLSX.utils.json_to_sheet([
+      { number_to: twilioNumber, number_from: callerNumber, message: body, unix_timestamp: Date.now() / 1000 },
+    ])
+    XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
+
     XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
   } else {
     console.log(`Incoming call from ${callerNumber}`);
@@ -112,10 +114,16 @@ Deno.serve(async (req) => {
     book = XLSX.utils.book_new();
   }
 
+  const sheet = book.Sheets[book.SheetNames[0]];
+  if (!book.SheetNames.length) {
+    XLSX.utils.book_append_sheet(book, sheet, "Messages");
+  } else {
+    book.Sheets[book.SheetNames[0]] = sheet;
+  }
+
   const table = XLSX.utils.json_to_sheet([
     { number_to: callerNumber, number_from: twilioNumber, message: body, unix_timestamp: Date.now() / 1000 },
   ])
-  const sheet = book.Sheets[book.SheetNames[0]];
   XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
   XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
 
