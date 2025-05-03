@@ -134,34 +134,32 @@ Deno.serve(async (req) => {
   }
 
   const table = XLSX.utils.json_to_sheet([
-    { number_to: callerNumber, number_from: twilioNumber, message: body, unix_timestamp: Date.now() / 1000 },
+    { number_to: callerNumber, number_from: twilioNumber, message: message.message, unix_timestamp: Date.now() / 1000 },
   ])
   XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
   XLSX.writeFile(book, `messages/${callerNumber}.xlsx`, { cellDates: true });
 
-  // Check if it has been over .5 minutes since the last message
+  // Check if it has been over 2.5 minutes since the last message
   setTimeout(() => {
     const lastMessage = db.messages.getLastMessageByNumber(callerNumber, twilioNumber);
     if (lastMessage) {
       const currentTime = Date.now() / 1000;
       const timeDifference = currentTime - lastMessage.unix_timestamp;
-      if (timeDifference > 30) { // .5 minutes in seconds
+      if (timeDifference > 150) { // 2.5 minutes in seconds
         // Send the excel logs of the conversation to the business owner
         const filePath = "/messages/" + callerNumber + ".xlsx";
-        console.log(`${url.origin + filePath}`);
         twilioClient.messages.create({
-          body: `The conversation with ${callerNumber} has ended. Please check the logs.`,
+          body: `Your conversation with ${callerNumber} can be found at ${url.origin + filePath}.`,
           from: twilioNumber,
           to: agent.fallback_number || "",
-          mediaUrl: [url.origin + filePath],
         }).then(() => {
-          console.log(`Sent conversation logs to ${agent.fallback_number} using ${twilioNumber}`);
+          console.log(`Sent conversation logs to ${agent.fallback_number || "noone in particular"} using ${twilioNumber}`);
         }).catch((error) => {
           console.error(`Failed to send conversation logs: ${error}`);
         })
       }
     }
-  }, 35000); // 35 seconds
+  }, 151000); // Slightly over 2.5 minutes
 
   return new Response(body ? "" : "Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
 });
