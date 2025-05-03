@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
         mediaUrl: [url.origin + "/messages/" + callerNumber + ".xlsx"]
       });
     }
-  }, 30000);
+  }, 45000);
 
   return new Response(body ? "" : "Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
 });
