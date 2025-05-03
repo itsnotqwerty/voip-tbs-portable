@@ -33,6 +33,18 @@ class MessageHandler {
         );
       `,
     ).run();
+
+    this.db.prepare(
+      `
+        CREATE TABLE IF NOT EXISTS message_archives (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          message TEXT NOT NULL,
+          number_to TEXT NOT NULL,
+          number_from TEXT NOT NULL,
+          unix_timestamp INTEGER NOT NULL
+        );
+      `,
+    ).run();
   }
   
   public insertMessage(message: Omit<IMessage, "id" | "unix_timestamp">) {

@@ -48,9 +48,10 @@ export class Logger {
     const zipWriter = new ZipWriter(new BlobWriter("application/zip"));
     for (const file of files) {
       const fileReader = new BlobReader(new Blob([Deno.readFileSync(file)]));
-      zipWriter.add(file, fileReader, { zipEntryName: file.split("/").pop() });
+      zipWriter.add(file, fileReader);
     }
     zipWriter.close().then(async (blob: Blob) => {
+      const zipFile = new Blob([blob], { type: "application/zip" });
       Deno.writeFileSync(zipFileName, new Uint8Array(await blob.arrayBuffer()));
       for (const file of files) {
         Deno.removeSync(file);
