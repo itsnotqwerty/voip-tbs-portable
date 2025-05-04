@@ -6,7 +6,7 @@ import {
   ZipWriter,
 } from "https://deno.land/x/zipjs@v2.7.60/index.js";
 import { format } from "https://deno.land/std@0.91.0/datetime/mod.ts";
-import { exists } from "https://deno.land/std/fs/mod.ts";
+import { exists } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { agent } from "$libs/agent.ts";
 import { IMessage } from "$types/data.ts";
 import { CustomDB } from "./db.ts";
@@ -67,7 +67,6 @@ class XLSXHandler {
   }
 
   public logToFile(message: Omit<IMessage, "id">) {
-    const twilioNumber = (Deno.env.get("TWILIO_NUMBER") == message.number_from) ? message.number_from : message.number_to;
     const callerNumber = (Deno.env.get("TWILIO_NUMBER") == message.number_from) ? message.number_to : message.number_from;
     const fileName = `messages/${callerNumber}.xlsx`;
 
@@ -85,9 +84,7 @@ class XLSXHandler {
       book.Sheets[book.SheetNames[0]] = sheet;
     }
 
-    const table = XLSX.utils.json_to_sheet([
-      { number_to: twilioNumber, number_from: callerNumber, message: message, unix_timestamp: Date.now() / 1000 },
-    ])
+    const table = XLSX.utils.json_to_sheet([message]);
     XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
 
     XLSX.writeFile(book, fileName, { cellDates: true });
@@ -114,7 +111,7 @@ class TXTHandler {
       Deno.writeTextFileSync(fileName, header, { append: true });
     }
     
-    const formattedMessage = `${format(new Date(), "yyyy-MM-dd - HH:mm:ss")} - FROM [${message.number_from}] TO [${message.number_to}]: ${message.message}\n`;
+    const formattedMessage = `${format(new Date(), "yyyy-MM-dd - HH:mm:ss")} - FROM [${message.number_to}] TO [${message.number_from}]: ${message.message}\n`;
     Deno.writeTextFileSync(fileName, formattedMessage, { append: true });
   }
 }
