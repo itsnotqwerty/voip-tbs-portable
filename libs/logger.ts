@@ -103,7 +103,7 @@ class TXTHandler {
     const callerNumber = (Deno.env.get("TWILIO_NUMBER") == message.number_from) ? message.number_to : message.number_from;
     const fileName = `messages/${callerNumber}.txt`;
 
-    if (await !exists(fileName)) {
+    if (!(await exists(fileName))) {
       const header = `
       ==================================================
       TICKET FOR: ${callerNumber}
