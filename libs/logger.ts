@@ -6,7 +6,8 @@ import {
   ZipWriter,
 } from "https://deno.land/x/zipjs@v2.7.60/index.js";
 import { format } from "https://deno.land/std@0.91.0/datetime/mod.ts";
-import { exists } from "https://deno.land/std/fs/mod.ts"
+import { exists } from "https://deno.land/std/fs/mod.ts";
+import { agent } from "$libs/agent.ts";
 import { IMessage } from "$types/data.ts";
 import { CustomDB } from "./db.ts";
 
@@ -49,7 +50,6 @@ export class Logger {
       zipWriter.add(file, fileReader);
     }
     zipWriter.close().then(async (blob: Blob) => {
-      const zipFile = new Blob([blob], { type: "application/zip" });
       Deno.writeFileSync(zipFileName, new Uint8Array(await blob.arrayBuffer()));
       for (const file of files) {
         Deno.removeSync(file);
@@ -107,7 +107,7 @@ class TXTHandler {
       const header = `
       ==================================================
       TICKET FOR: ${callerNumber}
-      BUSINESS NAME: ${Deno.env.get("BUSINESS_NAME")}
+      BUSINESS NAME: ${agent.business_name}
       TIMESTAMP: ${format(new Date(), "yyyy-MM-dd - HH:mm:ss")}
       ==================================================
       `
