@@ -3,12 +3,10 @@ import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 import {
   BlobReader,
   BlobWriter,
-  TextReader,
-  TextWriter,
-  ZipReader,
   ZipWriter,
-} from "https://deno.land/x/zipjs/index.js";
+} from "https://deno.land/x/zipjs@v2.7.60/index.js";
 import { format } from "https://deno.land/std@0.91.0/datetime/mod.ts";
+import { exists } from "https://deno.land/std/fs/mod.ts"
 import { IMessage } from "$types/data.ts";
 import { CustomDB } from "./db.ts";
 
@@ -101,10 +99,21 @@ class TXTHandler {
     // Initialize TXT handler
   }
 
-  public logToFile(message: Omit<IMessage, "id">) {
+  public async logToFile(message: Omit<IMessage, "id">) {
     const callerNumber = (Deno.env.get("TWILIO_NUMBER") == message.number_from) ? message.number_to : message.number_from;
     const fileName = `messages/${callerNumber}.txt`;
 
+    if (await !exists(fileName)) {
+      const header = `
+      ==================================================
+      TICKET FOR: ${callerNumber}
+      BUSINESS NAME: ${Deno.env.get("BUSINESS_NAME")}
+      TIMESTAMP: ${format(new Date(), "yyyy-MM-dd - HH:mm:ss")}
+      ==================================================
+      `
+      Deno.writeTextFileSync(fileName, header, { append: true });
+    }
+    
     const formattedMessage = `${format(new Date(), "yyyy-MM-dd - HH:mm:ss")} - FROM [${message.number_from}] TO [${message.number_to}]: ${message.message}\n`;
     Deno.writeTextFileSync(fileName, formattedMessage, { append: true });
   }
