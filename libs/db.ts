@@ -33,6 +33,18 @@ class MessageHandler {
         );
       `,
     ).run();
+
+    this.db.prepare(
+      `
+        CREATE TABLE IF NOT EXISTS message_archives (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          message TEXT NOT NULL,
+          number_to TEXT NOT NULL,
+          number_from TEXT NOT NULL,
+          unix_timestamp INTEGER NOT NULL
+        );
+      `,
+    ).run();
   }
   
   public insertMessage(message: Omit<IMessage, "id" | "unix_timestamp">) {
@@ -105,8 +117,8 @@ class MessageHandler {
     messages.forEach((message) => {
       this.db.prepare(
         `
-          INSERT INTO message_archives (user_id, message, number_to, number_from, unix_timestamp)
-          VALUES (?, ?, ?, ?, unixepoch());
+          INSERT INTO message_archives (message, number_to, number_from, unix_timestamp)
+          VALUES (?, ?, ?, unixepoch());
         `,
       ).run(
         message.message,
@@ -141,5 +153,24 @@ class MessageHandler {
       number_from,
       number_to,
     ) as IMessage[];
+  }
+
+  public getLastMessageByNumber(
+    number_to: string,
+    number_from: string,
+  ) {
+    return this.db.prepare(
+      `
+        SELECT * FROM messages
+        WHERE (number_to = ? AND number_from = ?) OR (number_to = ? AND number_from = ?)
+        ORDER BY unix_timestamp DESC
+        LIMIT 1;
+      `,
+    ).get(
+      number_to,
+      number_from,
+      number_from,
+      number_to,
+    ) as IMessage;
   }
 }

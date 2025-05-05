@@ -2,9 +2,10 @@ import twilio from "twilio";
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "https://jsr.io/@openai/openai/4.82.0/resources/index.ts";
 import { CustomDB } from "$libs/db.ts";
+import { Logger } from "$libs/logger.ts";
 import { agent } from "$libs/agent.ts";
 import { prompts } from "$libs/prompts.ts";
-import * as XLSX from "xlsx";
+import { format } from "https://deno.land/std@0.91.0/datetime/mod.ts";
 
 const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID") || "";
 const authToken = Deno.env.get("TWILIO_AUTH_TOKEN") || "";
@@ -13,9 +14,21 @@ const twilioNumber = Deno.env.get("TWILIO_NUMBER") || "";
 const openaiApiKey = Deno.env.get("OPENAI_API_KEY") || "";
 
 const db = new CustomDB("main.sqlite");
+const logger = new Logger(db);
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
+  if (url.pathname.match(/^\/messages\/\+[0-9]+\.zip/)) {
+    const filePathWithRoot = Deno.cwd() + "/" + url.pathname;
+    const file = await Deno.open(filePathWithRoot, { read: true });
+    return new Response(file.readable, {
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${url.pathname.split("/").pop()}"`,
+      },
+    });
+  }
+
   const callerNumber = url.searchParams.get("From") as string;
   const body = url.searchParams.get("Body") as string;
 
@@ -53,16 +66,10 @@ Deno.serve(async (req) => {
   });
 
   if (body) {
-    console.log(`Incoming message from ${callerNumber}: "${body}"`);
+    console.log(`Incoming message from ${callerNumber} [${format(new Date(), "yyyy-MM-dd - HH:mm:ss")}]: "${body}"`);
     inputs.push({ role: "user", content: body });
     db.messages.insertMessage({message: body, number_to: twilioNumber, number_from: callerNumber});
-    const table = XLSX.utils.json_to_sheet([
-      { number_to: twilioNumber, number_from: callerNumber, message: body, unix_timestamp: Date.now() / 1000 },
-    ])
-    const book = XLSX.readFile("messages.xlsx", { cellDates: true });
-    const sheet = book.Sheets[book.SheetNames[0]];
-    XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
-    XLSX.writeFile(book, "messages.xlsx", { cellDates: true });
+    logger.logMessage(callerNumber, twilioNumber, body);
   } else {
     console.log(`Incoming call from ${callerNumber}`);
     inputs.push({ role: "system", content: "You are taking an inquiry. Introduce the business and ask the user what they need."});
@@ -87,17 +94,42 @@ Deno.serve(async (req) => {
     to: callerNumber,
   });
 
-  console.log(`Responding to ${callerNumber} using ${twilioNumber}: "${message.message}"`);
+  console.log(`Responding to ${callerNumber} using ${twilioNumber} [${format(new Date(), "yyyy-MM-dd - HH:mm:ss")}]: "${message.message}"`);
 
   db.messages.insertMessage(message);
+  logger.logMessage(twilioNumber, callerNumber, message.message);
 
-  const table = XLSX.utils.json_to_sheet([
-    { number_to: callerNumber, number_from: twilioNumber, message: body, unix_timestamp: Date.now() / 1000 },
-  ])
-  const book = XLSX.readFile("messages.xlsx", { cellDates: true });
-  const sheet = book.Sheets[book.SheetNames[0]];
-  XLSX.utils.sheet_add_json(sheet, [table], { skipHeader: true, origin: -1 });
-  XLSX.writeFile(book, "messages.xlsx", { cellDates: true });
+  if (body) {
+    return new Promise((resolve) => {
+      // Check if it has been over 2.5 minutes since the last message
+      setTimeout(() => {
+        const lastMessage = db.messages.getLastMessageByNumber(callerNumber, twilioNumber);
+        if (lastMessage) {
+          const currentTime = Date.now() / 1000;
+          const timeDifference = currentTime - lastMessage.unix_timestamp;
+          if (timeDifference > 150) { // 2.5 minutes in seconds
+            // Archive the messages
+            db.messages.archiveMessages(twilioNumber, callerNumber);
+            logger.archiveMessages(callerNumber);
 
-  return new Response(body ? "" : "Sorry we couldn't get to your call. Please leave a message.", { status: 200 });
+            // Send the excel logs of the conversation to the business owner
+            const filePath = "/messages/" + callerNumber + ".zip";
+            twilioClient.messages.create({
+              body: `Your conversation with ${callerNumber} can be found at ${url.origin + filePath}`,
+              from: twilioNumber,
+              to: agent.fallback_number || "",
+            }).then(() => {
+              console.log(`Sent conversation logs to ${agent.fallback_number || "noone in particular"} using ${twilioNumber}`);
+            }).catch((error) => {
+              console.error(`Failed to send conversation logs: ${error}`);
+            })
+          }
+        }
+        resolve(new Response("Thank you for your messages. We will get back to you shortly.", {status: 200}));
+      }, 151000); // Slightly over 2.5 minutes
+    })
+  } else {
+    return new Response("Sorry we could not take your call. Please leave a message.", {status: 200});
+  }
+  
 });
