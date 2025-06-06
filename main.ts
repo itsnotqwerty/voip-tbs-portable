@@ -18,12 +18,12 @@ const logger = new Logger(db);
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
-  if (url.pathname.match(/^\/messages\/\+[0-9]+\.zip/)) {
+  if (url.pathname.match(/^\/messages\/\+[0-9]+\.txt/)) {
     const filePathWithRoot = Deno.cwd() + "/" + url.pathname;
     const file = await Deno.open(filePathWithRoot, { read: true });
     return new Response(file.readable, {
       headers: {
-        "Content-Type": "application/zip",
+        "Content-Type": "text/plain",
         "Content-Disposition": `attachment; filename="${url.pathname.split("/").pop()}"`,
       },
     });
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
   });
 
   const message = {
-    message: completion.choices[0].message.content as string,
+    message: (completion.choices[0].message.content as string).replace(/^"(.+(?="$))"$/, '$1'), // Remove quotes if they exist
     number_to: callerNumber,
     number_from: twilioNumber,
   }
@@ -110,10 +110,9 @@ Deno.serve(async (req) => {
           if (timeDifference > 150) { // 2.5 minutes in seconds
             // Archive the messages
             db.messages.archiveMessages(twilioNumber, callerNumber);
-            logger.archiveMessages(callerNumber);
 
             // Send the excel logs of the conversation to the business owner
-            const filePath = "/messages/" + callerNumber + ".zip";
+            const filePath = "/messages/" + callerNumber + ".txt";
             twilioClient.messages.create({
               body: `Your conversation with ${callerNumber} can be found at ${url.origin + filePath}`,
               from: twilioNumber,
