@@ -38,12 +38,12 @@ export class Logger {
     };
   }
 
-  public archiveMessages(number: string) {
+  // ZIP functionality has been deprecated in favor of text logging.
+  /* public archiveMessages(number: string) {
     const files = [
       `messages/${number}.xlsx`,
       `messages/${number}.txt`,
-    ];
-    const zipFileName = `messages/${number}.zip`;
+    ]; const zipFileName = `messages/${number}.zip`;
     const zipWriter = new ZipWriter(new BlobWriter("application/zip"));
     for (const file of files) {
       const fileReader = new BlobReader(new Blob([Deno.readFileSync(file)]));
@@ -58,7 +58,7 @@ export class Logger {
     }).catch((error: Error) => {
       console.error(`Failed to archive messages for ${number}: ${error}`);
     });
-  }
+  } */
 }
 
 class XLSXHandler {
